@@ -38,7 +38,7 @@ MODELS_DIR = os.path.join(os.path.dirname(__file__), "models")
 # Text-generation model used for the auto-reply. The original notebook used
 # Qwen/Qwen2.5-1.5B-Instruct. That works great locally / on a GPU box, but is
 # heavy for a small free-tier web host, so it's configurable via env var.
-GEN_MODEL_NAME = os.environ.get("GEN_MODEL_NAME", "Qwen/Qwen2.5-1.5B-Instruct")
+GEN_MODEL_NAME = os.environ.get("GEN_MODEL_NAME", "Qwen/Qwen2.5-0.5B-Instruct")
 SENTIMENT_MODEL_NAME = "cardiffnlp/twitter-roberta-base-sentiment-latest"
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 
@@ -187,7 +187,7 @@ with st.sidebar:
         "and a small LLM for a draft reply."
     )
     st.divider()
-    generate_llm_reply = st.checkbox("Generate an automated reply (LLM)", value=True)
+    generate_llm_reply = st.checkbox("Generate an automated reply (LLM)", value=False)
     st.caption(
         f"Reply model: `{GEN_MODEL_NAME}`. This is the heaviest step — "
         "uncheck it for a faster, lighter-weight run."
