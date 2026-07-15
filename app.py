@@ -239,30 +239,38 @@ Response:
 # ----------------------------------------------------------------------
 # UI — Header
 # ----------------------------------------------------------------------
-st.title("🧭 Complaint Intelligence")
+st.title("🤖 AI Customer Support Assistant")
+
 st.markdown(
-    '<p class="subtitle">AI-powered triage for customer support — intent, '
-    "sentiment, topic, and a suggested reply in one pass.</p>",
+    '<p class="subtitle">Analyze customer complaints using NLP and Large Language Models.</p>',
     unsafe_allow_html=True,
 )
+
 st.write("")
 
 with st.sidebar:
-    st.header("🧭 Complaint Intelligence")
+    st.header("🤖 AI Customer Support Assistant")
     st.write(
         "An end-to-end complaint-triage pipeline: a TF-IDF + Logistic "
-        "Regression model for intent, a RoBERTa model for sentiment, "
+        "Regression model for complaint classification, a RoBERTa model for sentiment, "
         "sentence-embedding + KMeans clustering for topic, and a small "
         "language model for a draft reply."
     )
     st.divider()
     st.subheader("Options")
-    generate_llm_reply = st.checkbox("Generate an automated reply (LLM)", value=False)
+
+    generate_llm_reply = st.checkbox(
+        "Generate an automated reply (LLM)",
+        value=True,
+    )
+
     st.caption(
         f"Reply model: `{GEN_MODEL_NAME}`. This is the heaviest step — "
         "uncheck it for a faster, lighter-weight run."
     )
+
     st.divider()
+
     st.caption(
         "**Setup note:** missing `models/*.pkl`? Run `train_artifacts.py` "
         "first, or drop your own `tfidf_vectorizer.pkl`, "
@@ -299,7 +307,7 @@ if analyze:
             intent = classifier.predict(vec)[0]
             st.markdown(
                 f"""<div class="result-card">
-                    <div class="result-label">Predicted intent</div>
+                    <div class="result-label">Complaint Category</div>
                     <div class="result-value">{intent.replace('_', ' ').title()}</div>
                 </div>""",
                 unsafe_allow_html=True,
