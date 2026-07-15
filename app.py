@@ -28,9 +28,55 @@ import streamlit as st
 # Page config
 # ----------------------------------------------------------------------
 st.set_page_config(
-    page_title="Customer Complaint Analyzer",
-    page_icon="💬",
-    layout="centered",
+    page_title="Complaint Intelligence | AI Support Analyzer",
+    page_icon="🧭",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+# Light custom styling for a more polished, professional look.
+st.markdown(
+    """
+    <style>
+    .block-container { padding-top: 2.2rem; max-width: 1000px; }
+    h1 { font-weight: 700; letter-spacing: -0.02em; }
+    .subtitle { color: #6b7280; font-size: 1.05rem; margin-top: -0.6rem; }
+    .result-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.1rem 1.3rem;
+        background: #fafafa;
+        height: 100%;
+    }
+    .result-label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #6b7280;
+        margin-bottom: 0.35rem;
+    }
+    .result-value { font-size: 1.15rem; font-weight: 600; color: #111827; }
+    .badge {
+        display: inline-block;
+        padding: 0.2rem 0.65rem;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    .badge-positive { background: #dcfce7; color: #166534; }
+    .badge-negative { background: #fee2e2; color: #991b1b; }
+    .badge-neutral  { background: #f3f4f6; color: #374151; }
+    .reply-box {
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.1rem 1.3rem;
+        background: #f8fafc;
+        line-height: 1.55;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
 MODELS_DIR = os.path.join(os.path.dirname(__file__), "models")
@@ -46,10 +92,31 @@ CLUSTER_NAMES_PATH = os.path.join(MODELS_DIR, "cluster_names.json")
 DEFAULT_CLUSTER_NAMES = {
     "0": "Payment & Refund Issues",
     "1": "Account Management",
-    "2": "Customer Service & Subscription",
+    "2": "Customer Service & Support",
     "3": "Order & Product Issues",
-    "4": "Shipping & Address Issues",
+    "4": "Shipping & Delivery Issues",
 }
+
+SENTIMENT_DISPLAY = {
+    "positive": ("Positive", "badge-positive", "🙂"),
+    "negative": ("Negative", "badge-negative", "😠"),
+    "neutral": ("Neutral", "badge-neutral", "😐"),
+}
+
+
+def format_cluster_label(raw: str) -> str:
+    """Turn a raw label into a clean, presentable phrase.
+
+    Curated names (e.g. "Payment & Refund Issues") pass through unchanged.
+    Auto-generated keyword lists from train_artifacts.py (e.g.
+    "assistance, customer, help, need, newsletter") are reformatted into a
+    short title-cased phrase so nothing raw or numeric reaches the UI.
+    """
+    parts = [p.strip() for p in raw.split(",") if p.strip()]
+    looks_like_keywords = len(parts) > 1 and raw == raw.lower()
+    if looks_like_keywords:
+        return " · ".join(p.capitalize() for p in parts[:3])
+    return raw
 
 
 # ----------------------------------------------------------------------
@@ -170,23 +237,26 @@ Response:
 
 
 # ----------------------------------------------------------------------
-# UI
+# UI — Header
 # ----------------------------------------------------------------------
-st.title("💬 Customer Complaint Analyzer")
-st.caption(
-    "Intent classification · sentiment analysis · complaint clustering · "
-    "automated reply generation"
+st.title("🧭 Complaint Intelligence")
+st.markdown(
+    '<p class="subtitle">AI-powered triage for customer support — intent, '
+    "sentiment, topic, and a suggested reply in one pass.</p>",
+    unsafe_allow_html=True,
 )
+st.write("")
 
 with st.sidebar:
-    st.header("About")
+    st.header("🧭 Complaint Intelligence")
     st.write(
-        "This app runs the full complaint-analysis pipeline from the "
-        "companion notebook: TF-IDF + Logistic Regression for intent, "
-        "a RoBERTa sentiment model, sentence-embedding + KMeans clustering, "
-        "and a small LLM for a draft reply."
+        "An end-to-end complaint-triage pipeline: a TF-IDF + Logistic "
+        "Regression model for intent, a RoBERTa model for sentiment, "
+        "sentence-embedding + KMeans clustering for topic, and a small "
+        "language model for a draft reply."
     )
     st.divider()
+    st.subheader("Options")
     generate_llm_reply = st.checkbox("Generate an automated reply (LLM)", value=False)
     st.caption(
         f"Reply model: `{GEN_MODEL_NAME}`. This is the heaviest step — "
@@ -194,9 +264,10 @@ with st.sidebar:
     )
     st.divider()
     st.caption(
-        "Missing `models/*.pkl`? Run `train_artifacts.py` first, or drop your "
-        "own `tfidf_vectorizer.pkl`, `complaint_classifier.pkl`, and "
-        "`kmeans_model.pkl` into the `models/` folder."
+        "**Setup note:** missing `models/*.pkl`? Run `train_artifacts.py` "
+        "first, or drop your own `tfidf_vectorizer.pkl`, "
+        "`complaint_classifier.pkl`, and `kmeans_model.pkl` into the "
+        "`models/` folder."
     )
 
 classifier, vectorizer = load_intent_model()
@@ -218,54 +289,96 @@ if analyze:
     stop_words, lemmatizer = load_nltk()
     cleaned = clean_text(complaint, stop_words, lemmatizer)
 
-    col1, col2 = st.columns(2)
+    st.write("")
+    col1, col2, col3 = st.columns(3)
 
     # --- Intent ---
     with col1:
-        st.subheader("Predicted intent")
         if classifier is not None and vectorizer is not None:
             vec = vectorizer.transform([cleaned])
             intent = classifier.predict(vec)[0]
-            st.success(intent)
+            st.markdown(
+                f"""<div class="result-card">
+                    <div class="result-label">Predicted intent</div>
+                    <div class="result-value">{intent.replace('_', ' ').title()}</div>
+                </div>""",
+                unsafe_allow_html=True,
+            )
         else:
             intent = "unknown"
-            st.error(
+            st.markdown(
+                """<div class="result-card">
+                    <div class="result-label">Predicted intent</div>
+                    <div class="result-value">Unavailable</div>
+                </div>""",
+                unsafe_allow_html=True,
+            )
+            st.caption(
                 "No intent classifier found in `models/`. "
                 "Run `train_artifacts.py` to generate one."
             )
 
     # --- Sentiment ---
     with col2:
-        st.subheader("Sentiment")
         sentiment_pipe = load_sentiment_pipeline()
         sent_result = sentiment_pipe(complaint)[0]
         sentiment_label = sent_result["label"]
-        st.info(f"{sentiment_label}  ({sent_result['score']:.2f} confidence)")
+        display_text, badge_class, emoji = SENTIMENT_DISPLAY.get(
+            sentiment_label.lower(), (sentiment_label.title(), "badge-neutral", "")
+        )
+        st.markdown(
+            f"""<div class="result-card">
+                <div class="result-label">Sentiment</div>
+                <div class="result-value">
+                    <span class="badge {badge_class}">{emoji} {display_text}</span>
+                </div>
+                <div style="margin-top:0.4rem; color:#6b7280; font-size:0.85rem;">
+                    {sent_result['score']:.0%} confidence
+                </div>
+            </div>""",
+            unsafe_allow_html=True,
+        )
 
     # --- Cluster ---
-    st.subheader("Topic cluster")
-    embedder, kmeans = load_cluster_model()
-    if kmeans is not None:
-        emb = embedder.encode([cleaned])
-        cluster_id = int(kmeans.predict(emb)[0])
-        cluster_label = cluster_names.get(str(cluster_id), f"Cluster {cluster_id}")
-        st.write(f"**{cluster_label}** (cluster {cluster_id})")
-    else:
-        st.warning(
-            "No clustering model found in `models/`. "
-            "Run `train_artifacts.py` to generate one."
-        )
+    with col3:
+        embedder, kmeans = load_cluster_model()
+        if kmeans is not None:
+            emb = embedder.encode([cleaned])
+            cluster_id = int(kmeans.predict(emb)[0])
+            raw_label = cluster_names.get(str(cluster_id), "General Inquiry")
+            cluster_label = format_cluster_label(raw_label)
+            st.markdown(
+                f"""<div class="result-card">
+                    <div class="result-label">Topic</div>
+                    <div class="result-value">{cluster_label}</div>
+                </div>""",
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                """<div class="result-card">
+                    <div class="result-label">Topic</div>
+                    <div class="result-value">Unavailable</div>
+                </div>""",
+                unsafe_allow_html=True,
+            )
+            st.caption(
+                "No clustering model found in `models/`. "
+                "Run `train_artifacts.py` to generate one."
+            )
 
     # --- Reply generation ---
     if generate_llm_reply:
-        st.subheader("Suggested reply")
-        with st.spinner("Generating reply..."):
+        st.write("")
+        st.subheader("✍️ Suggested reply")
+        with st.spinner("Drafting a reply..."):
             generator = load_generator()
             reply = generate_reply(generator, complaint, intent, sentiment_label)
-        st.write(reply)
+        st.markdown(f'<div class="reply-box">{reply}</div>', unsafe_allow_html=True)
 
+st.write("")
 st.divider()
 st.caption(
     "Built from the original NLP customer-support notebook. "
-    "See README.md for training / deployment instructions."
+    "See README.md for training and deployment instructions."
 )
