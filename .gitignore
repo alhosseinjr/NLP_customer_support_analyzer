@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.DS_Store
+*.log
+
+# Trained artifacts can be large — track with Git LFS or keep out of git
+# if you'd rather have Streamlit Cloud / CI regenerate them at build time.
+# Comment the next line out if you DO want to commit the .pkl files.
+models/*.pkl
+!models/.gitkeep
