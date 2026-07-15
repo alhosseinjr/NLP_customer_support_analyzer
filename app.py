@@ -229,7 +229,7 @@ Response:
 """
     output = generator(
         prompt,
-        max_new_tokens=80,
+        max_new_tokens=300,
         do_sample=False,
         return_full_text=False,
     )
