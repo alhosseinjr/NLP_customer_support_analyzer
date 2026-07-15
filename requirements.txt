@@ -7,6 +7,7 @@ nltk>=3.8
 contractions>=0.1.73
 sentence-transformers>=2.7
 transformers>=4.41
+--extra-index-url https://download.pytorch.org/whl/cpu
 torch>=2.2
 accelerate>=0.30
 sentencepiece>=0.2.0
