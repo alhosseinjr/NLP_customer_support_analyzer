@@ -28,8 +28,8 @@ import streamlit as st
 # Page config
 # ----------------------------------------------------------------------
 st.set_page_config(
-    page_title="Complaint Intelligence | AI Support Analyzer",
-    page_icon="🧭",
+    page_title="AI Customer Support Assistant",
+    page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded",
 )
