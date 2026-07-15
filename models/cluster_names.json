@@ -1,7 +1,7 @@
 {
-  "0": "check, help, need, payment, want",
-  "1": "account, help, need, profile, user",
-  "2": "assistance, customer, help, need, newsletter",
-  "3": "check, help, need, order, purchase",
-  "4": "address, delivery, help, need, shipping"
+  "0": "💳 Payment & Refund Issues",
+  "1": "👤 Account Management",
+  "2": "📞 Customer Service & Support",
+  "3": "📦 Order & Product Issues",
+  "4": "🚚 Shipping & Delivery Issues"
 }
