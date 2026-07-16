@@ -122,7 +122,7 @@ def format_cluster_label(raw: str) -> str:
 # ----------------------------------------------------------------------
 # Text preprocessing (matches the notebook's cleaning steps)
 # ----------------------------------------------------------------------
-@st.cache_resource(show_spinner=False)
+@st.cache_resource(show_spinner=False, ttl=3600)
 def load_nltk():
     import nltk
 
@@ -163,7 +163,7 @@ def clean_text(text: str, stop_words, lemmatizer) -> str:
 # ----------------------------------------------------------------------
 # Cached model loaders
 # ----------------------------------------------------------------------
-@st.cache_resource(show_spinner="Loading intent classifier...")
+@st.cache_resource(show_spinner="Loading intent classifier...", ttl=3600)
 def load_intent_model():
     clf_path = os.path.join(MODELS_DIR, "complaint_classifier.pkl")
     vec_path = os.path.join(MODELS_DIR, "tfidf_vectorizer.pkl")
@@ -174,14 +174,14 @@ def load_intent_model():
     return classifier, vectorizer
 
 
-@st.cache_resource(show_spinner="Loading sentiment model...")
+@st.cache_resource(show_spinner="Loading sentiment model...", ttl=3600)
 def load_sentiment_pipeline():
     from transformers import pipeline
 
     return pipeline("sentiment-analysis", model=SENTIMENT_MODEL_NAME)
 
 
-@st.cache_resource(show_spinner="Loading clustering model...")
+@st.cache_resource(show_spinner="Loading clustering model...", ttl=3600)
 def load_cluster_model():
     from sentence_transformers import SentenceTransformer
 
@@ -191,7 +191,7 @@ def load_cluster_model():
     return embedder, kmeans
 
 
-@st.cache_resource(show_spinner="Loading reply-generation model (first run can take a while)...")
+@st.cache_resource(show_spinner="Loading reply-generation model (first run can take a while)...", ttl=3600)
 def load_generator():
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -320,6 +320,12 @@ with st.sidebar:
         "`complaint_classifier.pkl`, and `kmeans_model.pkl` into the "
         "`models/` folder."
     )
+
+    st.divider()
+
+    if st.button("Clear cache", use_container_width=True):
+        st.cache_resource.clear()
+        st.rerun()
 
 classifier, vectorizer = load_intent_model()
 cluster_names = load_cluster_names()
