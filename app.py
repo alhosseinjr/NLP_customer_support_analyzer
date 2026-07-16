@@ -192,7 +192,6 @@ def load_cluster_model():
 
 
 @st.cache_resource(show_spinner="Loading reply-generation model (first run can take a while)...")
-@st.cache_resource(show_spinner="Loading reply-generation model (first run can take a while)...")
 def load_generator():
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -213,41 +212,40 @@ def load_cluster_names():
             return json.load(f)
     return DEFAULT_CLUSTER_NAMES
 
+
 def generate_reply(generator, complaint, intent, sentiment):
     model, tokenizer = generator
     text = complaint
 
-    prompt = f"""
-You are a professional customer support assistant.
-
-Customer complaint:
-{text}
-
-Predicted complaint category:
-{intent}
-
-Customer sentiment:
-{sentiment}
-
-Write ONLY one professional customer support reply.
-
-Rules:
-- Maximum 100 words.
-- Be polite and empathetic.
-- Give a clear solution.
-- Do NOT add Notes.
-- Do NOT add Feedback.
-- Do NOT add Additional Notes.
-- Do NOT add explanations.
-- Do NOT invent contact information.
-- End immediately after the reply.
-"""
+    system_prompt = (
+        "You are a professional customer support assistant. "
+        "Write ONE short, polite, empathetic reply to the customer's complaint "
+        "with a clear solution. Maximum 100 words. "
+        "Do not add notes, feedback, explanations, placeholders, or contact "
+        "information. Do not write 'Customer:' or 'Assistant:'. "
+        "Output only the reply text, nothing else."
+    )
+    user_prompt = (
+        f"Customer complaint:\n{text}\n\n"
+        f"Predicted complaint category: {intent}\n"
+        f"Customer sentiment: {sentiment}"
+    )
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
+    prompt = tokenizer.apply_chat_template(
+        messages,
+        tokenize=False,
+        add_generation_prompt=True,
+    )
 
     inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
     outputs = model.generate(
         **inputs,
         max_new_tokens=300,
         do_sample=False,
+        repetition_penalty=1.15,
     )
     input_length = inputs["input_ids"].shape[1]
     new_tokens = outputs[0][input_length:]
@@ -261,13 +259,24 @@ Rules:
         "Note:",
         "Additional Notes:",
         "Feedback:",
-        "**Feedback:**"
+        "**Feedback:**",
+        "Customer:",
+        "Assistant:",
+        "[Your Support",
+        "[Contact",
+        "[Email",
+        "[Phone",
+        "[Address",
+        "[Date]",
+        "[Subject]",
+        "[Message]",
     ]:
         if stop_word in reply:
             reply = reply.split(stop_word)[0].strip()
 
+    reply = reply.strip("*").strip()
+
     return reply
-    return output[0]["generated_text"].strip()
 
 
 # ----------------------------------------------------------------------
