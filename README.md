@@ -6,8 +6,6 @@ A Streamlit deployment of the NLP customer-support notebook. Given a
 customer complaint, the app returns an intent, sentiment, topic cluster,
 and a draft reply.
 
-![App screenshot](screenshot.png)
-
 **Built and trained for this project:**
 - **Intent classification** — TF-IDF + Logistic Regression, trained on the
   dataset below
