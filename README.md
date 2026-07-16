@@ -1,12 +1,45 @@
 # Customer Complaint Analyzer
 
-A Streamlit deployment of the NLP customer-support notebook. Given a
-customer complaint, the app predicts:
+**Live demo:** https://nlp-customer-support-analyzer.streamlit.app/
 
-- **Intent** (TF-IDF + Logistic Regression)
-- **Sentiment** (`cardiffnlp/twitter-roberta-base-sentiment-latest`)
-- **Topic cluster** (sentence embeddings + KMeans)
-- **A suggested reply** (small instruction-tuned LLM, optional toggle)
+A Streamlit deployment of the NLP customer-support notebook. Given a
+customer complaint, the app returns an intent, sentiment, topic cluster,
+and a draft reply.
+
+![App screenshot](screenshot.png)
+
+**Built and trained for this project:**
+- **Intent classification** — TF-IDF + Logistic Regression, trained on the
+  dataset below
+- **Topic clustering** — sentence embeddings (`all-MiniLM-L6-v2`) + KMeans,
+  trained on the same dataset
+
+**Integrated pretrained models:**
+- **Sentiment** — `cardiffnlp/twitter-roberta-base-sentiment-latest`
+- **Suggested reply** — a small instruction-tuned LLM (`Qwen2.5`, swappable
+  via `GEN_MODEL_NAME`), optional toggle
+
+## Dataset
+
+[Bitext customer-support LLM chatbot training dataset](https://huggingface.co/datasets/bitext/Bitext-customer-support-llm-chatbot-training-dataset)
+(Hugging Face) — customer support instructions labeled with category and
+intent, used to train the intent classifier and to build the topic
+clusters.
+
+## Results
+
+- Intent classifier (TF-IDF + Logistic Regression) test accuracy: **TODO —
+  add your number from the `train_artifacts.py` run**
+- Topic clustering: 5 clusters via KMeans, manually labeled from top
+  keywords per cluster (`models/cluster_names.json`)
+
+## Known limitation
+
+The reply-generation step can occasionally include a placeholder
+(`[Customer Name]`) or an invented contact detail (e.g. a phone number)
+that isn't filtered by the current stop-word list, since it doesn't always
+appear with a bracket prefix. Treat generated replies as a draft to review,
+not a send-as-is output.
 
 ## Project structure
 
@@ -17,6 +50,7 @@ customer complaint, the app predicts:
 ├── requirements.txt
 ├── models/                # tfidf_vectorizer.pkl, complaint_classifier.pkl,
 │                           # kmeans_model.pkl, cluster_names.json go here
+├── screenshot.png         # App screenshot used in this README
 └── .streamlit/config.toml # Theming
 ```
 
