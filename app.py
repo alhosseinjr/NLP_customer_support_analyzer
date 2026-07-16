@@ -192,17 +192,19 @@ def load_cluster_model():
 
 
 @st.cache_resource(show_spinner="Loading reply-generation model (first run can take a while)...")
+@st.cache_resource(show_spinner="Loading reply-generation model (first run can take a while)...")
 def load_generator():
     import torch
-    from transformers import pipeline
+    from transformers import AutoModelForCausalLM, AutoTokenizer
 
     dtype = torch.float16 if torch.cuda.is_available() else torch.float32
-    return pipeline(
-        "text-generation",
-        model=GEN_MODEL_NAME,
+    tokenizer = AutoTokenizer.from_pretrained(GEN_MODEL_NAME)
+    model = AutoModelForCausalLM.from_pretrained(
+        GEN_MODEL_NAME,
         torch_dtype=dtype,
         device_map="auto" if torch.cuda.is_available() else None,
     )
+    return model, tokenizer
 
 
 def load_cluster_names():
@@ -211,28 +213,60 @@ def load_cluster_names():
             return json.load(f)
     return DEFAULT_CLUSTER_NAMES
 
-
 def generate_reply(generator, complaint, intent, sentiment):
+    model, tokenizer = generator
+    text = complaint
+
     prompt = f"""
-You are a professional customer support agent.
+You are a professional customer support assistant.
 
-Customer Complaint:
-{complaint}
+Customer complaint:
+{text}
 
-Category:
+Predicted complaint category:
 {intent}
 
-Sentiment:
+Customer sentiment:
 {sentiment}
 
-Response:
+Write ONLY one professional customer support reply.
+
+Rules:
+- Maximum 100 words.
+- Be polite and empathetic.
+- Give a clear solution.
+- Do NOT add Notes.
+- Do NOT add Feedback.
+- Do NOT add Additional Notes.
+- Do NOT add explanations.
+- Do NOT invent contact information.
+- End immediately after the reply.
 """
-    output = generator(
-        prompt,
+
+    inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+    outputs = model.generate(
+        **inputs,
         max_new_tokens=300,
         do_sample=False,
-        return_full_text=False,
     )
+    input_length = inputs["input_ids"].shape[1]
+    new_tokens = outputs[0][input_length:]
+    reply = tokenizer.decode(
+        new_tokens,
+        skip_special_tokens=True
+    )
+    reply = reply.strip()
+
+    for stop_word in [
+        "Note:",
+        "Additional Notes:",
+        "Feedback:",
+        "**Feedback:**"
+    ]:
+        if stop_word in reply:
+            reply = reply.split(stop_word)[0].strip()
+
+    return reply
     return output[0]["generated_text"].strip()
 
 
