@@ -10,3 +10,4 @@ venv/
 # Comment the next line out if you DO want to commit the .pkl files.
 models/*.pkl
 !models/.gitkeep
+*.db
